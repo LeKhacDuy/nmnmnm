@@ -26,7 +26,7 @@ function Header() {
     } = useLocationContext();
 
     const { language, toggleLanguage, t } = useLanguage();
-    const { currentUser } = useAuth();
+    const { currentUser, userProfile } = useAuth();
 
     const [isScrolled, setIsScrolled] = useState(false);
     const [searchKeyword, setSearchKeyword] = useState('');
@@ -229,12 +229,22 @@ function Header() {
                             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
                         </svg>
                     </button>
-                    <button
-                        className="header__login-btn"
-                        onClick={() => navigate('/login')}
-                    >
-                        {t('login')}
-                    </button>
+                    {currentUser ? (
+                        <button
+                            className="header__login-btn header__profile-btn"
+                            onClick={() => navigate('/ho-so')}
+                        >
+                            <span style={{marginRight: '6px', fontSize: '1.2rem'}}>👤</span>
+                            {userProfile?.displayName || currentUser.displayName?.split(' ')[0] || (language === 'vi' ? 'Hồ sơ' : 'Profile')}
+                        </button>
+                    ) : (
+                        <button
+                            className="header__login-btn"
+                            onClick={() => navigate('/login')}
+                        >
+                            {t('login')}
+                        </button>
+                    )}
                 </div>
             </div>
 

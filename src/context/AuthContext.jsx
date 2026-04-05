@@ -32,7 +32,10 @@ export function AuthProvider({ children }) {
         phone: '',
         address: '',
         displayName: '',
-        photoURL: ''
+        photoURL: '',
+        defaultVehicle: 'motorbike',
+        budgetPreference: 2,
+        dietaryRestrictions: []
     });
 
     // Login with Google
@@ -78,6 +81,9 @@ export function AuthProvider({ children }) {
                 address: '',
                 favorites: [],
                 searchHistory: [],
+                defaultVehicle: 'motorbike',
+                budgetPreference: 2,
+                dietaryRestrictions: [],
                 createdAt: new Date().toISOString()
             });
             setFavorites([]);
@@ -86,7 +92,10 @@ export function AuthProvider({ children }) {
                 phone: '',
                 address: '',
                 displayName: user.displayName || '',
-                photoURL: user.photoURL || ''
+                photoURL: user.photoURL || '',
+                defaultVehicle: 'motorbike',
+                budgetPreference: 2,
+                dietaryRestrictions: []
             });
         } else {
             const data = userSnap.data();
@@ -96,7 +105,10 @@ export function AuthProvider({ children }) {
                 phone: data.phone || '',
                 address: data.address || '',
                 displayName: data.displayName || user.displayName || '',
-                photoURL: data.photoURL || user.photoURL || ''
+                photoURL: data.photoURL || user.photoURL || '',
+                defaultVehicle: data.defaultVehicle || 'motorbike',
+                budgetPreference: data.budgetPreference || 2,
+                dietaryRestrictions: data.dietaryRestrictions || []
             });
         }
     }
@@ -115,7 +127,10 @@ export function AuthProvider({ children }) {
                     phone: data.phone || '',
                     address: data.address || '',
                     displayName: data.displayName || '',
-                    photoURL: data.photoURL || ''
+                    photoURL: data.photoURL || '',
+                    defaultVehicle: data.defaultVehicle || 'motorbike',
+                    budgetPreference: data.budgetPreference || 2,
+                    dietaryRestrictions: data.dietaryRestrictions || []
                 });
             }
         } catch (error) {
@@ -265,6 +280,21 @@ export function AuthProvider({ children }) {
         }
     }
 
+    // Update behavior profile
+    async function updateBehaviorProfile(newData) {
+        if (!currentUser) return false;
+
+        try {
+            const userRef = doc(db, "users", currentUser.uid);
+            await updateDoc(userRef, newData);
+            setUserProfile(prev => ({ ...prev, ...newData }));
+            return true;
+        } catch (error) {
+            console.error("Error updating behavior profile:", error);
+            return false;
+        }
+    }
+
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setCurrentUser(user);
@@ -294,7 +324,8 @@ export function AuthProvider({ children }) {
         updateDisplayName,
         updatePhone,
         updateAddress,
-        changePassword
+        changePassword,
+        updateBehaviorProfile
     };
 
     return (

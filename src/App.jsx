@@ -12,6 +12,7 @@ import CategoryPage from './pages/CategoryPage';
 import EmergencyPage from './pages/EmergencyPage';
 import Login from './pages/Login';
 import Favorites from './pages/Favorites';
+import Profile from './pages/Profile';
 import LocationModal from './components/LocationModal';
 import RadiusSelector from './components/RadiusSelector';
 import { useLocationContext } from './context/LocationContext';
@@ -49,6 +50,8 @@ function AppContent() {
                     {/* User routes */}
                     <Route path="/favorites" element={<Favorites />} />
                     <Route path="/yeu-thich" element={<Favorites />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/ho-so" element={<Profile />} />
                 </Routes>
             </main>
             <Footer />

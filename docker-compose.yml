@@ -1,5 +1,60 @@
 services:
-  # Development server
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: nearme
+      POSTGRES_USER: nearme
+      POSTGRES_PASSWORD: nearme_secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nearme"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend API Server
+  server:
+    build:
+      context: ./server
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=nearme
+      - DB_USER=nearme
+      - DB_PASSWORD=nearme_secret
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=nearme-dev-secret-change-in-production
+      - CORS_ORIGIN=http://localhost:5173
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+
+  # Frontend Dev Server
   dev:
     build:
       context: .
@@ -11,8 +66,10 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
+      - VITE_API_TARGET=http://server:3001
+      - CHOKIDAR_USEPOLLING=true
 
-  # Production server
+  # Frontend Production
   prod:
     build:
       context: .
@@ -24,3 +81,6 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
     environment:
       - NODE_ENV=production
+
+volumes:
+  pgdata:

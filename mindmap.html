@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Near Me – Project Mindmap</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0e1a;
+            color: #e0e6f0;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(168, 85, 247, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        #toolbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 24px;
+            background: rgba(10, 14, 26, 0.92);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(99, 102, 241, 0.15);
+        }
+
+        #toolbar h1 {
+            font-size: 17px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #818cf8, #c084fc, #38bdf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        #toolbar .subtitle {
+            font-size: 11px;
+            color: #64748b;
+            margin-left: 12px;
+        }
+
+        .toolbar-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .toolbar-actions button {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            padding: 5px 12px;
+            border-radius: 7px;
+            font-size: 11px;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .toolbar-actions button:hover {
+            background: rgba(99, 102, 241, 0.22);
+            color: #e0e7ff;
+            border-color: rgba(99, 102, 241, 0.45);
+        }
+
+        #canvas-container {
+            position: fixed;
+            inset: 0;
+            top: 46px;
+            z-index: 1;
+            cursor: grab;
+        }
+
+        #canvas-container.grabbing { cursor: grabbing; }
+
+        #mindmap-svg { width: 100%; height: 100%; }
+
+        /* Tooltip */
+        #tooltip {
+            position: fixed;
+            z-index: 200;
+            background: rgba(15, 23, 42, 0.96);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 11px;
+            color: #cbd5e1;
+            max-width: 300px;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: opacity 0.15s, transform 0.15s;
+            line-height: 1.6;
+        }
+
+        #tooltip.visible { opacity: 1; transform: translateY(0); }
+
+        #tooltip .tip-title {
+            font-weight: 700;
+            color: #e0e7ff;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+
+        /* Legend */
+        #legend {
+            position: fixed;
+            bottom: 14px; left: 14px;
+            z-index: 50;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(99, 102, 241, 0.12);
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 10px;
+        }
+
+        #legend h3 {
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 3px;
+            color: #94a3b8;
+        }
+
+        .legend-dot {
+            width: 8px; height: 8px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        #zoom-info {
+            position: fixed;
+            bottom: 14px; right: 14px;
+            z-index: 50;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(99, 102, 241, 0.12);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 10px;
+            color: #64748b;
+        }
+
+        .hint-text {
+            margin-top: 6px;
+            color: #475569;
+            font-size: 9px;
+            line-height: 1.4;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(var(--slide-dir, 10px)); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .btn-export {
+            background: rgba(16, 185, 129, 0.12) !important;
+            border-color: rgba(16, 185, 129, 0.3) !important;
+            color: #6ee7b7 !important;
+        }
+        .btn-export:hover {
+            background: rgba(16, 185, 129, 0.25) !important;
+            color: #a7f3d0 !important;
+            border-color: rgba(16, 185, 129, 0.5) !important;
+        }
+
+        #export-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(10, 14, 26, 0.85);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 16px;
+        }
+        #export-overlay.active { display: flex; }
+        #export-overlay .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid rgba(99, 102, 241, 0.2);
+            border-top-color: #818cf8;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        #export-overlay .msg {
+            color: #a5b4fc;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media print {
+            body { background: #0a0e1a !important; overflow: visible !important; width: auto !important; height: auto !important; }
+            body::before { display: none !important; }
+            #toolbar, #legend, #zoom-info, #tooltip, #export-overlay { display: none !important; }
+            #canvas-container {
+                position: relative !important;
+                inset: auto !important;
+                top: auto !important;
+                width: 100% !important;
+                height: 100vh !important;
+                overflow: visible !important;
+            }
+            #mindmap-svg { width: 100% !important; height: 100vh !important; }
+            @page {
+                size: landscape;
+                margin: 10mm;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="toolbar">
+    <div style="display:flex;align-items:baseline;">
+        <h1>🗺️ Near Me — Project Mindmap</h1>
+        <span class="subtitle">Behavior Decision System</span>
+    </div>
+    <div class="toolbar-actions">
+        <button onclick="resetView()">⟳ Reset</button>
+        <button onclick="expandAll()">◈ Expand All</button>
+        <button onclick="collapseAll()">◇ Collapse</button>
+        <button onclick="fitToScreen()">⊞ Fit</button>
+        <button class="btn-export" onclick="exportPNG()">📷 Xuất PNG</button>
+        <button class="btn-export" onclick="exportPDF()">📄 Xuất PDF</button>
+    </div>
+</div>
+
+<div id="canvas-container">
+    <svg id="mindmap-svg">
+        <defs>
+            <linearGradient id="rootGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#6366f1" />
+                <stop offset="100%" style="stop-color:#a855f7" />
+            </linearGradient>
+            <filter id="glow-root">
+                <feGaussianBlur stdDeviation="6" result="blur"/>
+                <feFlood flood-color="#8b5cf6" flood-opacity="0.3"/>
+                <feComposite in2="blur" operator="in"/>
+                <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="shadow-sm">
+                <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/>
+            </filter>
+        </defs>
+        <g id="links-layer"></g>
+        <g id="nodes-layer"></g>
+    </svg>
+</div>
+
+<div id="legend">
+    <h3>Chú thích</h3>
+    <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,#6366f1,#a855f7)"></div><span>Core</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9"></div><span>Discovery (SEO+GPS)</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div><span>Decision (AI)</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div><span>Backend Services</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div><span>Data Model</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div><span>Metrics & Learning</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ec4899"></div><span>Frontend</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#6366f1"></div><span>Zone Strategy</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:#14b8a6"></div><span>Triển khai</span></div>
+    <div class="hint-text">Click node để mở/đóng<br>Kéo chuột để di chuyển<br>Scroll để zoom</div>
+</div>
+
+<div id="zoom-info">100%</div>
+<div id="tooltip"></div>
+<div id="export-overlay"><div class="spinner"></div><div class="msg">Đang xuất hình ảnh...</div></div>
+
+<script>
+// =========================================================
+// DATA
+// =========================================================
+const data = {
+    id: 'root', label: 'NEAR ME', sublabel: 'Behavior Decision System', icon: '🧠', level: 0,
+    desc: 'Near Me là hệ thống ra quyết định theo hành vi đời sống.\nSEO tìm người cần → GPS hiểu hoàn cảnh → AI chọn giúp ngay.\nChatbot/AI là sản phẩm chính, website là cổng vào.',
+    children: [
+        // ===== RIGHT SIDE (indices 0-3) =====
+        {
+            id: 'discovery', label: 'Discovery Layer', sublabel: 'Radar nhu cầu', icon: '🔍', color: 'discovery',
+            desc: 'Thu hút người đang có nhu cầu thật qua SEO + GPS.',
+            children: [
+                { id: 'seo', label: 'SEO Strategy', icon: '📈', color: 'discovery',
+                  desc: 'SEO truy vấn: "gần tôi", "mở cửa", "24/7", "ăn gì gần đây"…',
+                  children: [
+                    { id: 'seo1', label: 'Trang ngành (ăn uống, spa…)', color: 'discovery' },
+                    { id: 'seo2', label: 'Trang khu vực (quận, phường)', color: 'discovery' },
+                    { id: 'seo3', label: 'Entity pages (địa điểm)', color: 'discovery' },
+                    { id: 'seo4', label: 'SEO content 300-500 chữ + CTA', color: 'discovery' },
+                ]},
+                { id: 'gps', label: 'GPS & Vị trí', icon: '📍', color: 'discovery',
+                  desc: 'Bán kính: ~1.2km mobile / ~2km desktop. Ẩn danh, không đăng nhập.',
+                  children: [
+                    { id: 'gps1', label: 'Bật vị trí → session ẩn danh', color: 'discovery' },
+                    { id: 'gps2', label: 'Từ chối → chọn khu vực thủ công', color: 'discovery' },
+                    { id: 'gps3', label: 'Spoof detection (>150km/h)', color: 'discovery' },
+                ]},
+                { id: 'homepage', label: 'Homepage Logic', icon: '🏠', color: 'discovery',
+                  desc: 'Hero + Intent Buttons + Floating CTA "Hỏi Near Me".',
+                  children: [
+                    { id: 'hp1', label: 'Hero: "Không biết đi đâu?"', color: 'discovery' },
+                    { id: 'hp2', label: 'Intent Buttons (ăn nhanh, cafe…)', color: 'discovery' },
+                    { id: 'hp3', label: 'How it works (3 bước)', color: 'discovery' },
+                    { id: 'hp4', label: 'Floating "Hỏi Near Me"', color: 'discovery' },
+                ]},
+            ]
+        },
+        {
+            id: 'decision', label: 'Decision Layer', sublabel: 'Bộ não quyết định', icon: '🤖', color: 'decision',
+            desc: 'AI chọn Top 3 phù hợp nhất. Chatbot/AI là sản phẩm chính.',
+            children: [
+                { id: 'chatbot', label: 'Chatbot AI Flow', icon: '💬', color: 'decision',
+                  desc: '6 bước: Context → Classify → Engine → Output → Action → Feedback.',
+                  children: [
+                    { id: 'cb1', label: '1. Hỏi ngữ cảnh (1 câu)', color: 'decision' },
+                    { id: 'cb2', label: '2. Classify (quick/chill/group…)', color: 'decision' },
+                    { id: 'cb3', label: '3. Decision Engine /recommend', color: 'decision' },
+                    { id: 'cb4', label: '4. Output Top 3 (tên + lý do)', color: 'decision' },
+                    { id: 'cb5', label: '5. Action (chỉ đường / gọi)', color: 'decision' },
+                    { id: 'cb6', label: '6. Feedback (sau 45-60 phút)', color: 'decision' },
+                ]},
+                { id: 'scoring', label: 'Thuật toán Top 3', icon: '⚡', color: 'decision',
+                  desc: 'Score = distance + open_now + context_match + speed + reliability + feedback.',
+                  children: [
+                    { id: 'sc1', label: '≤300m: +3 | 300-800m: +2', color: 'decision' },
+                    { id: 'sc2', label: 'Đang mở: +3 | Ngữ cảnh: +3', color: 'decision' },
+                    { id: 'sc3', label: 'Nhanh: +2 | Tốt: +2 | Đông: -3', color: 'decision' },
+                ]},
+                { id: 'channels', label: 'Channels', icon: '📱', color: 'decision',
+                  children: [
+                    { id: 'ch1', label: 'Messenger', color: 'decision' },
+                    { id: 'ch2', label: 'Zalo', color: 'decision' },
+                    { id: 'ch3', label: 'Webchat UI', color: 'decision' },
+                ]},
+            ]
+        },
+        {
+            id: 'backend', label: 'Backend Services', sublabel: 'Event-driven', icon: '⚙️', color: 'backend',
+            desc: 'Near Me backend = event-driven decision service.',
+            children: [
+                { id: 'api', label: 'API Endpoints (v1)', icon: '🔌', color: 'backend',
+                  desc: '8 endpoints. Response: {status, data, error_code, correlation_id}.',
+                  children: [
+                    { id: 'api1', label: 'POST /session/start', color: 'backend' },
+                    { id: 'api2', label: 'POST /chat/message', color: 'backend' },
+                    { id: 'api3', label: 'POST /recommend', color: 'backend' },
+                    { id: 'api4', label: 'POST /decision/accept', color: 'backend' },
+                    { id: 'api5', label: 'POST /feedback/submit', color: 'backend' },
+                    { id: 'api6', label: 'GET /places/nearby', color: 'backend' },
+                    { id: 'api7', label: 'GET /health · /metrics', color: 'backend' },
+                ]},
+                { id: 'services', label: 'Core Services', icon: '🧩', color: 'backend',
+                  children: [
+                    { id: 'sv1', label: 'API Gateway (rate limit, auth)', color: 'backend' },
+                    { id: 'sv2', label: 'Decision Engine (stateless)', color: 'backend' },
+                    { id: 'sv3', label: 'Location Service (zone, radius)', color: 'backend' },
+                    { id: 'sv4', label: 'Places Service (cache 30s)', color: 'backend' },
+                    { id: 'sv5', label: 'Feedback Service', color: 'backend' },
+                ]},
+                { id: 'infra', label: 'Infrastructure', icon: '🏗️', color: 'backend',
+                  children: [
+                    { id: 'inf1', label: 'Redis (session TTL 24h)', color: 'backend' },
+                    { id: 'inf2', label: 'PostgreSQL (primary DB)', color: 'backend' },
+                    { id: 'inf3', label: 'Queue/Worker (async jobs)', color: 'backend' },
+                    { id: 'inf4', label: 'CDN + WAF + Logs', color: 'backend' },
+                ]},
+                { id: 'fallback', label: 'Fallback & Stability', icon: '🛡️', color: 'backend',
+                  desc: 'Circuit breaker, Quick Finder fallback, timeout < 1200ms.',
+                  children: [
+                    { id: 'fb1', label: 'Engine lỗi → Quick Finder', color: 'backend' },
+                    { id: 'fb2', label: 'Circuit breaker + cache', color: 'backend' },
+                    { id: 'fb3', label: 'Timeout target < 1200ms', color: 'backend' },
+                ]},
+            ]
+        },
+        {
+            id: 'datamodel', label: 'Data Model', sublabel: 'Behavior Learning DB', icon: '🗄️', color: 'data',
+            desc: 'Database = bộ nhớ hệ thống. Lưu lịch sử quyết định, không phải danh bạ.',
+            children: [
+                { id: 'tables', label: 'Database Tables', icon: '📋', color: 'data',
+                  desc: '8 bảng chính cho Behavior Decision System.',
+                  children: [
+                    { id: 'tb1', label: 'places (địa điểm + scores)', color: 'data' },
+                    { id: 'tb2', label: 'place_tags (quick/chill/group…)', color: 'data' },
+                    { id: 'tb3', label: 'sessions (ẩn danh, GPS)', color: 'data' },
+                    { id: 'tb4', label: 'decisions (mỗi lần gợi ý)', color: 'data' },
+                    { id: 'tb5', label: 'decision_candidates ⭐', color: 'data', desc: 'Training data cho AI – bảng quan trọng nhất.' },
+                    { id: 'tb6', label: 'accepts (lựa chọn thực tế)', color: 'data' },
+                    { id: 'tb7', label: 'feedback (good/neutral/bad)', color: 'data' },
+                    { id: 'tb8', label: 'zones (khu vực triển khai)', color: 'data' },
+                ]},
+                { id: 'datarules', label: 'Data Hygiene', icon: '🧹', color: 'data',
+                  desc: 'Tự động làm sạch dữ liệu để giữ chất lượng.',
+                  children: [
+                    { id: 'dr1', label: 'Trùng tọa độ → gộp', color: 'data' },
+                    { id: 'dr2', label: '2x bỏ qua → giảm reliability', color: 'data' },
+                    { id: 'dr3', label: '3 feedback xấu → inactive', color: 'data' },
+                    { id: 'dr4', label: '14 ngày im → kiểm tra thủ công', color: 'data' },
+                ]},
+                { id: 'datapipeline', label: 'Data Intake', icon: '🔄', color: 'data',
+                  desc: 'TikTok → phát hiện hot. Maps → định danh. Facebook → xác thực.',
+                  children: [
+                    { id: 'dp1', label: 'TikTok → phát hiện xu hướng', color: 'data' },
+                    { id: 'dp2', label: 'Google Maps → tọa độ', color: 'data' },
+                    { id: 'dp3', label: 'Facebook → xác thực', color: 'data' },
+                    { id: 'dp4', label: 'Seed: 30-80 địa điểm/zone', color: 'data' },
+                ]},
+            ]
+        },
+        // ===== LEFT SIDE (indices 4-7) =====
+        {
+            id: 'metrics', label: 'Metrics & Learning', sublabel: 'Thần kinh + Trí nhớ', icon: '📊', color: 'metrics',
+            desc: 'Không đo pageview. Đo hành vi quyết định thực tế.',
+            children: [
+                { id: 'corekpi', label: 'Core KPIs', icon: '🎯', color: 'metrics',
+                  desc: '7 chỉ số theo dõi hằng ngày.',
+                  children: [
+                    { id: 'kp1', label: 'Repeat Usage ≥ 30% (7d)', color: 'metrics' },
+                    { id: 'kp2', label: 'Same-Day Return ≥ 20% ⭐', color: 'metrics', desc: 'Chỉ số sống còn.' },
+                    { id: 'kp3', label: 'Decision Time < 25s', color: 'metrics' },
+                    { id: 'kp4', label: 'Acceptance Rate ≥ 60%', color: 'metrics' },
+                    { id: 'kp5', label: '1st Accuracy ≥ 35%', color: 'metrics' },
+                    { id: 'kp6', label: 'Wrong Suggestion ≤ 20%', color: 'metrics' },
+                    { id: 'kp7', label: 'Feedback Positive ≥ 70%', color: 'metrics' },
+                ]},
+                { id: 'learning', label: 'Learning Loop', icon: '🔁', color: 'metrics',
+                  desc: 'recommend → accept/reject → feedback → update ranking.',
+                  children: [
+                    { id: 'll1', label: 'Accept: +1 reliability', color: 'metrics' },
+                    { id: 'll2', label: 'Reject: -1 reliability', color: 'metrics' },
+                    { id: 'll3', label: 'Feedback xấu: -2', color: 'metrics' },
+                    { id: 'll4', label: '3x xấu liên tiếp → ẩn', color: 'metrics' },
+                ]},
+                { id: 'events', label: 'Event Tracking', icon: '📝', color: 'metrics',
+                  children: [
+                    { id: 'ev1', label: 'Structured JSON logs', color: 'metrics' },
+                    { id: 'ev2', label: 'correlation_id bắt buộc', color: 'metrics' },
+                    { id: 'ev3', label: 'Dashboard theo ngày', color: 'metrics' },
+                    { id: 'ev4', label: 'Alert khi metrics giảm', color: 'metrics' },
+                ]},
+            ]
+        },
+        {
+            id: 'frontend', label: 'Frontend', sublabel: 'Vite + React SPA', icon: '🖥️', color: 'frontend',
+            desc: 'Prototype hiện tại. Cần chuyển sang Decision UI.',
+            children: [
+                { id: 'fepages', label: 'Pages', icon: '📄', color: 'frontend',
+                  children: [
+                    { id: 'fp1', label: 'Home (Hero + Categories)', color: 'frontend' },
+                    { id: 'fp2', label: 'Search (3 modes)', color: 'frontend' },
+                    { id: 'fp3', label: 'Category + Emergency', color: 'frontend' },
+                    { id: 'fp4', label: 'Login + Favorites', color: 'frontend' },
+                ]},
+                { id: 'fecomp', label: 'Components', icon: '🧱', color: 'frontend',
+                  children: [
+                    { id: 'fc1', label: 'Header + Footer', color: 'frontend' },
+                    { id: 'fc2', label: 'HeroSection + Banner', color: 'frontend' },
+                    { id: 'fc3', label: 'LocationModal + Radius', color: 'frontend' },
+                    { id: 'fc4', label: 'CategoryGrid + Redirect', color: 'frontend' },
+                ]},
+                { id: 'fecontext', label: 'Context & State', icon: '🔗', color: 'frontend',
+                  children: [
+                    { id: 'fx1', label: 'LocationContext (GPS)', color: 'frontend' },
+                    { id: 'fx2', label: 'LanguageContext (i18n)', color: 'frontend' },
+                    { id: 'fx3', label: 'AuthContext (Firebase)', color: 'frontend' },
+                    { id: 'fx4', label: 'RedirectContext', color: 'frontend' },
+                ]},
+            ]
+        },
+        {
+            id: 'zone', label: 'Zone Strategy', sublabel: 'Mở rộng từ core', icon: '🗺️', color: 'zone',
+            desc: 'Core Zone: Hồ Con Rùa – Q1. Mở rộng khi KPI đạt.',
+            children: [
+                { id: 'corezone', label: 'Core Zone', icon: '📌', color: 'zone',
+                  desc: 'Hồ Con Rùa – Q1. Mật độ cao, đi bộ được.',
+                  children: [
+                    { id: 'cz1', label: 'Hồ Con Rùa – Quận 1', color: 'zone' },
+                    { id: 'cz2', label: '~1.2km mobile / ~2km desktop', color: 'zone' },
+                ]},
+                { id: 'behavior', label: 'Hành vi theo vị trí', icon: '🎭', color: 'zone',
+                  children: [
+                    { id: 'bh1', label: 'Trong Core → AI Top 3', color: 'zone' },
+                    { id: 'bh2', label: 'Ngoài Core → gợi ý nhẹ', color: 'zone' },
+                    { id: 'bh3', label: 'Ngoài HCM → Quick Finder', color: 'zone' },
+                ]},
+                { id: 'expand', label: 'Điều kiện mở rộng', icon: '📈', color: 'zone',
+                  desc: '3 tuần liên tiếp đạt KPI mới mở zone mới.',
+                  children: [
+                    { id: 'ex1', label: 'Repeat ≥ 30%', color: 'zone' },
+                    { id: 'ex2', label: 'Acceptance ≥ 60%', color: 'zone' },
+                    { id: 'ex3', label: 'Same-day ≥ 20%', color: 'zone' },
+                    { id: 'ex4', label: 'Wrong ≤ 20%', color: 'zone' },
+                ]},
+            ]
+        },
+        {
+            id: 'rollout', label: 'Triển khai', sublabel: 'Roll-out & Rules', icon: '🚀', color: 'rollout',
+            desc: '4 tuần. Seed 30-80 địa điểm. Không mở toàn TP cùng lúc.',
+            children: [
+                { id: 'phases', label: 'Giai đoạn', icon: '📅', color: 'rollout',
+                  children: [
+                    { id: 'ph1', label: 'W1: GPS + Chatbot', color: 'rollout' },
+                    { id: 'ph2', label: 'W2: Soft launch Khu 1', color: 'rollout' },
+                    { id: 'ph3', label: 'W3: Theo dõi + chỉnh rule', color: 'rollout' },
+                    { id: 'ph4', label: 'W4: Mở rộng zone tiếp', color: 'rollout' },
+                ]},
+                { id: 'donts', label: 'Không được làm', icon: '🚫', color: 'rollout',
+                  children: [
+                    { id: 'dn1', label: 'Không xoá SEO structure', color: 'rollout' },
+                    { id: 'dn2', label: 'Không thành web review', color: 'rollout' },
+                    { id: 'dn3', label: 'Không hiện Top 20', color: 'rollout' },
+                    { id: 'dn4', label: 'Không bán vị trí Top 3', color: 'rollout' },
+                    { id: 'dn5', label: 'Không mobile app sớm', color: 'rollout' },
+                ]},
+                { id: 'deploy', label: 'Môi trường', icon: '☁️', color: 'rollout',
+                  children: [
+                    { id: 'dp1b', label: 'dev / staging / prod', color: 'rollout' },
+                    { id: 'dp2b', label: 'Docker + Nginx', color: 'rollout' },
+                    { id: 'dp3b', label: 'Canary deploy Engine', color: 'rollout' },
+                    { id: 'dp4b', label: 'DB backup hàng ngày', color: 'rollout' },
+                ]},
+            ]
+        },
+    ]
+};
+
+// =========================================================
+// COLOR PALETTE
+// =========================================================
+const COLORS = {
+    discovery: { bg: '#0e2a3a', bgL3: '#0c2230', border: '#0ea5e9', text: '#7dd3fc', link: '#0ea5e9', fill1: '#0c4a6e', fill2: '#0e7490' },
+    decision:  { bg: '#1e1338', bgL3: '#19102e', border: '#8b5cf6', text: '#c4b5fd', link: '#8b5cf6', fill1: '#4c1d95', fill2: '#6d28d9' },
+    backend:   { bg: '#2a1f0a', bgL3: '#221a08', border: '#f59e0b', text: '#fcd34d', link: '#f59e0b', fill1: '#78350f', fill2: '#b45309' },
+    data:      { bg: '#0a2a1e', bgL3: '#081f16', border: '#10b981', text: '#6ee7b7', link: '#10b981', fill1: '#064e3b', fill2: '#047857' },
+    metrics:   { bg: '#2a0e0e', bgL3: '#220c0c', border: '#ef4444', text: '#fca5a5', link: '#ef4444', fill1: '#7f1d1d', fill2: '#b91c1c' },
+    frontend:  { bg: '#2a0e22', bgL3: '#220c1b', border: '#ec4899', text: '#f9a8d4', link: '#ec4899', fill1: '#831843', fill2: '#be185d' },
+    zone:      { bg: '#171533', bgL3: '#13112a', border: '#6366f1', text: '#a5b4fc', link: '#6366f1', fill1: '#312e81', fill2: '#4338ca' },
+    rollout:   { bg: '#0a2a26', bgL3: '#081f1c', border: '#14b8a6', text: '#5eead4', link: '#14b8a6', fill1: '#134e4a', fill2: '#0f766e' },
+};
+
+// =========================================================
+// LAYOUT: Horizontal tree, left-right split
+// =========================================================
+const NODE_H = { root: 52, L1: 44, L2: 36, L3: 26 };
+const NODE_W = { root: 240, L1: 185, L2: 175, L3: 200 };
+const GAP_Y = { L1: 12, L2: 8, L3: 4 };
+const GAP_X = { L1: 100, L2: 80, L3: 70 };
+
+const collapsed = new Set();
+
+// Calculate total height a node needs (including its visible children)
+function calcHeight(node, depth) {
+    if (!node.children || node.children.length === 0 || collapsed.has(node.id)) {
+        const key = depth === 0 ? 'root' : depth === 1 ? 'L1' : depth === 2 ? 'L2' : 'L3';
+        return NODE_H[key];
+    }
+    const gapKey = depth === 0 ? 'L1' : depth === 1 ? 'L2' : 'L3';
+    let total = 0;
+    node.children.forEach((c, i) => {
+        total += calcHeight(c, depth + 1);
+        if (i < node.children.length - 1) total += GAP_Y[gapKey];
+    });
+    const selfKey = depth === 0 ? 'root' : depth === 1 ? 'L1' : depth === 2 ? 'L2' : 'L3';
+    return Math.max(NODE_H[selfKey], total);
+}
+
+// Assign x, y positions
+function layoutTree(node, x, y, depth, direction) {
+    // direction: 1 = right, -1 = left
+    const selfKey = depth === 0 ? 'root' : depth === 1 ? 'L1' : depth === 2 ? 'L2' : 'L3';
+    node._x = x;
+    node._y = y;
+    node._w = NODE_W[selfKey];
+    node._h = NODE_H[selfKey];
+    node._depth = depth;
+    node._dir = direction;
+
+    if (!node.children || node.children.length === 0 || collapsed.has(node.id)) return;
+
+    const childDepth = depth + 1;
+    const gapKey = depth === 0 ? 'L1' : depth === 1 ? 'L2' : 'L3';
+    const xGapKey = depth === 0 ? 'L1' : depth === 1 ? 'L2' : 'L3';
+    const childX = x + direction * (NODE_W[selfKey] / 2 + GAP_X[xGapKey]);
+
+    // Calculate total children height
+    let totalH = 0;
+    const childHeights = node.children.map(c => calcHeight(c, childDepth));
+    childHeights.forEach((h, i) => {
+        totalH += h;
+        if (i < childHeights.length - 1) totalH += GAP_Y[gapKey];
+    });
+
+    let currentY = y - totalH / 2;
+    node.children.forEach((child, i) => {
+        const ch = childHeights[i];
+        const childY = currentY + ch / 2;
+        layoutTree(child, childX, childY, childDepth, direction);
+        currentY += ch + GAP_Y[gapKey];
+    });
+}
+
+function doLayout() {
+    const svg = document.getElementById('mindmap-svg');
+    const W = svg.clientWidth;
+    const H = svg.clientHeight;
+    const cx = W / 2;
+    const cy = H / 2;
+
+    data._x = cx;
+    data._y = cy;
+    data._w = NODE_W.root;
+    data._h = NODE_H.root;
+    data._depth = 0;
+    data._dir = 0;
+
+    if (!data.children) return;
+
+    // Split: first half → right, second half → left
+    const half = Math.ceil(data.children.length / 2);
+    const rightGroup = data.children.slice(0, half);
+    const leftGroup = data.children.slice(half);
+
+    // Layout right side
+    let totalRightH = 0;
+    const rightHeights = rightGroup.map(c => calcHeight(c, 1));
+    rightHeights.forEach((h, i) => { totalRightH += h; if (i < rightHeights.length - 1) totalRightH += GAP_Y.L1; });
+    let ry = cy - totalRightH / 2;
+    rightGroup.forEach((child, i) => {
+        const ch = rightHeights[i];
+        const childY = ry + ch / 2;
+        const childX = cx + NODE_W.root / 2 + GAP_X.L1;
+        layoutTree(child, childX, childY, 1, 1);
+        ry += ch + GAP_Y.L1;
+    });
+
+    // Layout left side
+    let totalLeftH = 0;
+    const leftHeights = leftGroup.map(c => calcHeight(c, 1));
+    leftHeights.forEach((h, i) => { totalLeftH += h; if (i < leftHeights.length - 1) totalLeftH += GAP_Y.L1; });
+    let ly = cy - totalLeftH / 2;
+    leftGroup.forEach((child, i) => {
+        const ch = leftHeights[i];
+        const childY = ly + ch / 2;
+        const childX = cx - NODE_W.root / 2 - GAP_X.L1;
+        layoutTree(child, childX, childY, 1, -1);
+        ly += ch + GAP_Y.L1;
+    });
+}
+
+// =========================================================
+// RENDERING
+// =========================================================
+const svgNS = 'http://www.w3.org/2000/svg';
+const linksLayer = document.getElementById('links-layer');
+const nodesLayer = document.getElementById('nodes-layer');
+const tooltip = document.getElementById('tooltip');
+let transform = { x: 0, y: 0, scale: 1 };
+
+function el(tag, attrs = {}) {
+    const e = document.createElementNS(svgNS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    return e;
+}
+
+function applyTransform() {
+    const g = `translate(${transform.x},${transform.y}) scale(${transform.scale})`;
+    linksLayer.setAttribute('transform', g);
+    nodesLayer.setAttribute('transform', g);
+    document.getElementById('zoom-info').textContent = `${Math.round(transform.scale * 100)}%`;
+}
+
+function drawLink(px, py, cx, cy, color, dir) {
+    const cpOffset = Math.abs(cx - px) * 0.5;
+    const cp1x = px + dir * cpOffset;
+    const cp2x = cx - dir * cpOffset;
+    const path = el('path', {
+        d: `M${px},${py} C${cp1x},${py} ${cp2x},${cy} ${cx},${cy}`,
+        fill: 'none',
+        stroke: color,
+        'stroke-width': '1.5',
+        opacity: '0.35',
+        'stroke-linecap': 'round',
+    });
+    linksLayer.appendChild(path);
+}
+
+function drawNode(node, parent) {
+    const d = node._depth;
+    const c = COLORS[node.color] || COLORS.discovery;
+    const x = node._x, y = node._y, w = node._w, h = node._h;
+    const dir = node._dir || (parent ? parent._dir : 1);
+
+    // Link from parent
+    if (parent) {
+        const px = parent._x + (dir) * (parent._w / 2);
+        const cx = x - (dir) * (w / 2);
+        drawLink(px, parent._y, cx, y, c.link, dir);
+    }
+
+    const g = el('g', { class: 'node-group', style: 'cursor:pointer' });
+
+    // Rect
+    let fill, stroke, sw, radius;
+    if (d === 0) {
+        fill = 'url(#rootGrad)'; stroke = 'rgba(139,92,246,0.6)'; sw = 2; radius = 16;
+    } else if (d === 1) {
+        fill = c.bg; stroke = c.border; sw = 1.5; radius = 12;
+    } else if (d === 2) {
+        fill = c.bg; stroke = c.border + '88'; sw = 1; radius = 10;
+    } else {
+        fill = c.bgL3; stroke = c.border + '55'; sw = 0.7; radius = 8;
+    }
+
+    const rect = el('rect', {
+        x: x - w / 2, y: y - h / 2, width: w, height: h,
+        rx: radius, ry: radius,
+        fill, stroke, 'stroke-width': sw,
+        filter: d <= 1 ? 'url(#shadow-sm)' : '',
+    });
+    g.appendChild(rect);
+
+    // Glow for root
+    if (d === 0) {
+        const glow = el('rect', {
+            x: x - w / 2 - 3, y: y - h / 2 - 3, width: w + 6, height: h + 6,
+            rx: 19, ry: 19,
+            fill: 'none', stroke: 'rgba(139,92,246,0.2)', 'stroke-width': 2,
+        });
+        g.insertBefore(glow, rect);
+    }
+
+    // Text
+    const hasIcon = node.icon && d <= 2;
+    const hasSub = node.sublabel && d <= 1;
+    let textX;
+
+    if (d === 0) {
+        textX = x;
+    } else if (dir === 1) {
+        textX = x - w / 2 + (hasIcon ? 28 : 12);
+    } else {
+        textX = x + w / 2 - (hasIcon ? 28 : 12);
+    }
+
+    const textAnchor = d === 0 ? 'middle' : dir === 1 ? 'start' : 'end';
+
+    if (hasIcon) {
+        const iconX = dir === 1 ? x - w / 2 + 14 : x + w / 2 - 14;
+        const icon = el('text', {
+            x: d === 0 ? x - w / 2 + 24 : iconX,
+            y: y + (hasSub ? -3 : 1),
+            'font-size': d === 0 ? '16px' : d === 1 ? '13px' : '11px',
+            'dominant-baseline': 'central',
+            'text-anchor': 'middle',
+            'pointer-events': 'none',
+        });
+        icon.textContent = node.icon;
+        g.appendChild(icon);
+
+        if (d === 0) textX = x + 6;
+    }
+
+    const fontSize = d === 0 ? '15px' : d === 1 ? '11.5px' : d === 2 ? '10.5px' : '9.5px';
+    const fontWeight = d === 0 ? '800' : d === 1 ? '700' : d === 2 ? '600' : '500';
+    const fillColor = d === 0 ? '#fff' : d <= 2 ? c.text : c.text + 'cc';
+
+    const label = el('text', {
+        x: textX, y: y + (hasSub ? -4 : 1),
+        'font-family': 'Inter, sans-serif',
+        'font-size': fontSize,
+        'font-weight': fontWeight,
+        fill: fillColor,
+        'dominant-baseline': 'central',
+        'text-anchor': textAnchor,
+        'pointer-events': 'none',
+    });
+    label.textContent = node.label;
+    g.appendChild(label);
+
+    if (hasSub) {
+        const sub = el('text', {
+            x: textX, y: y + 10,
+            'font-family': 'Inter, sans-serif',
+            'font-size': '8.5px',
+            'font-weight': '400',
+            fill: c.text + '88',
+            'dominant-baseline': 'central',
+            'text-anchor': textAnchor,
+            'pointer-events': 'none',
+        });
+        sub.textContent = node.sublabel;
+        g.appendChild(sub);
+    }
+
+    // Collapse/expand badge
+    if (node.children && node.children.length > 0) {
+        const isCollapsed = collapsed.has(node.id);
+        const badgeX = dir >= 0 ? x + w / 2 - 8 : x - w / 2 + 8;
+        if (d === 0) {
+            // no badge on root
+        } else {
+            const badge = el('text', {
+                x: badgeX, y: y + 1,
+                'font-family': 'Inter, sans-serif',
+                'font-size': '9px',
+                'font-weight': '700',
+                fill: isCollapsed ? c.border : c.text + '55',
+                'dominant-baseline': 'central',
+                'text-anchor': 'middle',
+                'pointer-events': 'none',
+            });
+            badge.textContent = isCollapsed ? `+${countAll(node)}` : '−';
+            g.appendChild(badge);
+        }
+    }
+
+    // Events
+    g.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (node.children && node.children.length > 0 && d > 0) {
+            if (collapsed.has(node.id)) collapsed.delete(node.id);
+            else collapsed.add(node.id);
+            render();
+        }
+    });
+
+    g.addEventListener('mouseenter', (e) => {
+        if (node.desc) {
+            tooltip.innerHTML = `<div class="tip-title">${node.icon || ''} ${node.label}</div>${node.desc.replace(/\n/g, '<br>')}`;
+            tooltip.classList.add('visible');
+            moveTooltip(e);
+        }
+    });
+    g.addEventListener('mousemove', moveTooltip);
+    g.addEventListener('mouseleave', () => tooltip.classList.remove('visible'));
+
+    nodesLayer.appendChild(g);
+
+    // Draw children
+    if (node.children && !collapsed.has(node.id)) {
+        node.children.forEach(child => drawNode(child, node));
+    }
+}
+
+function moveTooltip(e) {
+    let tx = e.clientX + 14, ty = e.clientY + 14;
+    if (tx + 300 > window.innerWidth) tx = e.clientX - 310;
+    if (ty + 100 > window.innerHeight) ty = e.clientY - 110;
+    tooltip.style.left = tx + 'px';
+    tooltip.style.top = ty + 'px';
+}
+
+function countAll(node) {
+    if (!node.children) return 0;
+    let c = node.children.length;
+    node.children.forEach(ch => c += countAll(ch));
+    return c;
+}
+
+function render() {
+    linksLayer.innerHTML = '';
+    nodesLayer.innerHTML = '';
+    doLayout();
+    drawNode(data, null);
+    applyTransform();
+}
+
+// =========================================================
+// PAN & ZOOM
+// =========================================================
+const container = document.getElementById('canvas-container');
+let isPanning = false, panStart = { x: 0, y: 0 };
+
+container.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.node-group')) return;
+    isPanning = true;
+    panStart = { x: e.clientX - transform.x, y: e.clientY - transform.y };
+    container.classList.add('grabbing');
+});
+window.addEventListener('mousemove', (e) => {
+    if (!isPanning) return;
+    transform.x = e.clientX - panStart.x;
+    transform.y = e.clientY - panStart.y;
+    applyTransform();
+});
+window.addEventListener('mouseup', () => { isPanning = false; container.classList.remove('grabbing'); });
+
+container.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const d = e.deltaY > 0 ? 0.92 : 1.08;
+    const ns = Math.max(0.12, Math.min(3, transform.scale * d));
+    const rect = container.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    transform.x = mx - (mx - transform.x) * (ns / transform.scale);
+    transform.y = my - (my - transform.y) * (ns / transform.scale);
+    transform.scale = ns;
+    applyTransform();
+}, { passive: false });
+
+// Touch support
+let lastTouchDist = 0, lastTouchCenter = null, touchPanning = false;
+container.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+        touchPanning = true;
+        panStart = { x: e.touches[0].clientX - transform.x, y: e.touches[0].clientY - transform.y };
+    } else if (e.touches.length === 2) {
+        touchPanning = false;
+        lastTouchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        lastTouchCenter = { x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2 };
+    }
+}, { passive: false });
+container.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (e.touches.length === 1 && touchPanning) {
+        transform.x = e.touches[0].clientX - panStart.x;
+        transform.y = e.touches[0].clientY - panStart.y;
+        applyTransform();
+    } else if (e.touches.length === 2 && lastTouchDist) {
+        const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        const scale = dist / lastTouchDist;
+        const ns = Math.max(0.12, Math.min(3, transform.scale * scale));
+        const ctr = { x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2 };
+        const rect = container.getBoundingClientRect();
+        const mx = ctr.x - rect.left, my = ctr.y - rect.top;
+        transform.x = mx - (mx - transform.x) * (ns / transform.scale);
+        transform.y = my - (my - transform.y) * (ns / transform.scale);
+        transform.scale = ns;
+        lastTouchDist = dist;
+        applyTransform();
+    }
+}, { passive: false });
+container.addEventListener('touchend', () => { touchPanning = false; lastTouchDist = 0; });
+
+// =========================================================
+// TOOLBAR
+// =========================================================
+function resetView() {
+    transform = { x: 0, y: 0, scale: 1 };
+    applyTransform();
+}
+
+function fitToScreen() {
+    // Calculate bounds
+    const bounds = getBounds(data);
+    const svg = document.getElementById('mindmap-svg');
+    const W = svg.clientWidth, H = svg.clientHeight - 46;
+    const bw = bounds.maxX - bounds.minX + 100;
+    const bh = bounds.maxY - bounds.minY + 100;
+    const scale = Math.min(W / bw, H / bh, 1.2);
+    const cx = (bounds.minX + bounds.maxX) / 2;
+    const cy = (bounds.minY + bounds.maxY) / 2;
+    transform.scale = scale;
+    transform.x = W / 2 - cx * scale;
+    transform.y = H / 2 - cy * scale + 23;
+    applyTransform();
+}
+
+function getBounds(node) {
+    let minX = node._x - node._w / 2, maxX = node._x + node._w / 2;
+    let minY = node._y - node._h / 2, maxY = node._y + node._h / 2;
+    if (node.children && !collapsed.has(node.id)) {
+        node.children.forEach(c => {
+            const cb = getBounds(c);
+            minX = Math.min(minX, cb.minX);
+            maxX = Math.max(maxX, cb.maxX);
+            minY = Math.min(minY, cb.minY);
+            maxY = Math.max(maxY, cb.maxY);
+        });
+    }
+    return { minX, maxX, minY, maxY };
+}
+
+function expandAll() {
+    collapsed.clear();
+    render();
+    setTimeout(fitToScreen, 50);
+}
+
+function collapseAll() {
+    function addIds(node) {
+        if (node.children && node.children.length > 0) {
+            collapsed.add(node.id);
+            node.children.forEach(addIds);
+        }
+    }
+    data.children.forEach(addIds);
+    render();
+    setTimeout(fitToScreen, 50);
+}
+
+// =========================================================
+// EXPORT FUNCTIONS
+// =========================================================
+function showOverlay(msg) {
+    const ov = document.getElementById('export-overlay');
+    ov.querySelector('.msg').textContent = msg;
+    ov.classList.add('active');
+}
+function hideOverlay() {
+    document.getElementById('export-overlay').classList.remove('active');
+}
+
+async function exportPNG() {
+    showOverlay('Đang xuất PNG...');
+    await new Promise(r => setTimeout(r, 100));
+
+    try {
+        // Save current state
+        const savedCollapsed = new Set(collapsed);
+        const savedTransform = { ...transform };
+
+        // Expand all and re-layout
+        collapsed.clear();
+        render();
+
+        // Get bounds
+        const bounds = getBounds(data);
+        const pad = 60;
+        const bx = bounds.minX - pad;
+        const by = bounds.minY - pad;
+        const bw = bounds.maxX - bounds.minX + pad * 2;
+        const bh = bounds.maxY - bounds.minY + pad * 2;
+
+        // Clone SVG
+        const svgEl = document.getElementById('mindmap-svg');
+        const clone = svgEl.cloneNode(true);
+        clone.setAttribute('width', bw);
+        clone.setAttribute('height', bh);
+        clone.setAttribute('viewBox', `${bx} ${by} ${bw} ${bh}`);
+
+        // Remove transform from layers (we use viewBox instead)
+        const cloneLinks = clone.querySelector('#links-layer');
+        const cloneNodes = clone.querySelector('#nodes-layer');
+        if (cloneLinks) cloneLinks.removeAttribute('transform');
+        if (cloneNodes) cloneNodes.removeAttribute('transform');
+
+        // Add background rect
+        const bgRect = document.createElementNS(svgNS, 'rect');
+        bgRect.setAttribute('x', bx);
+        bgRect.setAttribute('y', by);
+        bgRect.setAttribute('width', bw);
+        bgRect.setAttribute('height', bh);
+        bgRect.setAttribute('fill', '#0a0e1a');
+        clone.insertBefore(bgRect, clone.firstChild);
+
+        // Add watermark
+        const wm = document.createElementNS(svgNS, 'text');
+        wm.setAttribute('x', bx + bw - 20);
+        wm.setAttribute('y', by + bh - 16);
+        wm.setAttribute('text-anchor', 'end');
+        wm.setAttribute('font-family', 'Inter, sans-serif');
+        wm.setAttribute('font-size', '11');
+        wm.setAttribute('fill', 'rgba(148,163,184,0.4)');
+        wm.textContent = 'Near Me — Project Mindmap';
+        clone.appendChild(wm);
+
+        // Serialize SVG
+        const serializer = new XMLSerializer();
+        let svgString = serializer.serializeToString(clone);
+
+        // Ensure fonts are embedded
+        svgString = svgString.replace(
+            '<defs>',
+            `<defs><style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap');</style>`
+        );
+
+        // Create high-res canvas (2x)
+        const scale = 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = bw * scale;
+        canvas.height = bh * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.scale(scale, scale);
+
+        // Draw background
+        ctx.fillStyle = '#0a0e1a';
+        ctx.fillRect(0, 0, bw, bh);
+
+        // SVG to image
+        const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+
+        await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = url;
+        });
+
+        ctx.drawImage(img, 0, 0, bw, bh);
+        URL.revokeObjectURL(url);
+
+        // Download
+        const a = document.createElement('a');
+        a.download = 'NearMe_Mindmap.png';
+        a.href = canvas.toDataURL('image/png');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // Restore state
+        collapsed.clear();
+        savedCollapsed.forEach(id => collapsed.add(id));
+        transform.x = savedTransform.x;
+        transform.y = savedTransform.y;
+        transform.scale = savedTransform.scale;
+        render();
+
+    } catch (err) {
+        console.error('Export error:', err);
+        alert('Xuất PNG thất bại. Thử dùng Xuất PDF thay thế.');
+    }
+    hideOverlay();
+}
+
+function exportPDF() {
+    // Save current state
+    const savedCollapsed = new Set(collapsed);
+    const savedTransform = { ...transform };
+
+    // Expand all and fit
+    collapsed.clear();
+    render();
+
+    // Set transform to fit for printing
+    const bounds = getBounds(data);
+    const svg = document.getElementById('mindmap-svg');
+    const W = svg.clientWidth, H = svg.clientHeight;
+    const pad = 40;
+    const bw = bounds.maxX - bounds.minX + pad * 2;
+    const bh = bounds.maxY - bounds.minY + pad * 2;
+    const pScale = Math.min(W / bw, H / bh, 1);
+    const cx = (bounds.minX + bounds.maxX) / 2;
+    const cy = (bounds.minY + bounds.maxY) / 2;
+    transform.scale = pScale;
+    transform.x = W / 2 - cx * pScale;
+    transform.y = H / 2 - cy * pScale;
+    applyTransform();
+
+    // Print
+    setTimeout(() => {
+        window.print();
+
+        // Restore state after print dialog
+        setTimeout(() => {
+            collapsed.clear();
+            savedCollapsed.forEach(id => collapsed.add(id));
+            transform.x = savedTransform.x;
+            transform.y = savedTransform.y;
+            transform.scale = savedTransform.scale;
+            render();
+        }, 500);
+    }, 200);
+}
+
+// =========================================================
+// INIT
+// =========================================================
+window.addEventListener('resize', () => { render(); });
+render();
+fitToScreen();
+</script>
+</body>
+</html>

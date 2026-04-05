@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Near Me — Đánh giá Khả thi & Tiến độ Dự án</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e1a;
+            --surface: #111827;
+            --surface2: #1e293b;
+            --border: rgba(99,102,241,0.12);
+            --text: #e2e8f0;
+            --text2: #94a3b8;
+            --text3: #64748b;
+            --accent: #818cf8;
+            --accent2: #a78bfa;
+            --green: #10b981;
+            --green-bg: rgba(16,185,129,0.1);
+            --yellow: #f59e0b;
+            --yellow-bg: rgba(245,158,11,0.1);
+            --red: #ef4444;
+            --red-bg: rgba(239,68,68,0.1);
+            --blue: #3b82f6;
+            --blue-bg: rgba(59,130,246,0.1);
+            --pink: #ec4899;
+            --cyan: #06b6d4;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Print styles */
+        @media print {
+            body { background: #fff; color: #1e293b; }
+            .no-print { display: none !important; }
+            .container { max-width: 100%; padding: 20px; }
+            .card { border: 1px solid #e2e8f0; background: #fff; }
+            .progress-fill { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            @page { size: A4; margin: 15mm; }
+        }
+
+        /* Header */
+        .report-header {
+            background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.1), rgba(6,182,212,0.08));
+            border-bottom: 1px solid var(--border);
+            padding: 48px 0 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .report-header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 30% 50%, rgba(99,102,241,0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 50%, rgba(168,85,247,0.06) 0%, transparent 50%);
+        }
+
+        .report-header .badge {
+            display: inline-block;
+            background: rgba(99,102,241,0.15);
+            border: 1px solid rgba(99,102,241,0.25);
+            color: var(--accent);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .report-header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #e0e7ff, #c4b5fd, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        .report-header .subtitle {
+            color: var(--text2);
+            font-size: 15px;
+            position: relative;
+        }
+
+        .report-header .date {
+            color: var(--text3);
+            font-size: 12px;
+            margin-top: 8px;
+            position: relative;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10,14,26,0.92);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 8px 24px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .toolbar button {
+            background: rgba(16,185,129,0.1);
+            border: 1px solid rgba(16,185,129,0.25);
+            color: #6ee7b7;
+            padding: 6px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .toolbar button:hover {
+            background: rgba(16,185,129,0.2);
+            border-color: rgba(16,185,129,0.4);
+        }
+
+        /* Container */
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 32px 24px 80px;
+        }
+
+        /* Big number cards */
+        .big-numbers {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .big-num-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px 20px;
+            text-align: center;
+        }
+
+        .big-num-card .num {
+            font-size: 36px;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .big-num-card .num.green { color: var(--green); }
+        .big-num-card .num.yellow { color: var(--yellow); }
+        .big-num-card .num.red { color: var(--red); }
+        .big-num-card .num.accent { color: var(--accent); }
+        .big-num-card .num.blue { color: var(--blue); }
+        .big-num-card .num.cyan { color: var(--cyan); }
+
+        .big-num-card .label {
+            font-size: 11px;
+            color: var(--text3);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title .icon {
+            font-size: 22px;
+        }
+
+        .section-title .num-badge {
+            background: rgba(99,102,241,0.15);
+            color: var(--accent);
+            font-size: 11px;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        /* Card */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-badge {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 8px;
+        }
+
+        .card-badge.green { background: var(--green-bg); color: var(--green); }
+        .card-badge.yellow { background: var(--yellow-bg); color: var(--yellow); }
+        .card-badge.red { background: var(--red-bg); color: var(--red); }
+        .card-badge.blue { background: var(--blue-bg); color: var(--blue); }
+
+        /* Progress bar */
+        .progress-container {
+            margin-bottom: 20px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .progress-label .name { color: var(--text); font-weight: 600; }
+        .progress-label .pct { color: var(--text2); font-weight: 700; }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 10px 12px;
+            background: rgba(99,102,241,0.06);
+            color: var(--text2);
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            vertical-align: top;
+        }
+
+        .data-table tr:last-child td { border-bottom: none; }
+
+        .data-table tr:hover td {
+            background: rgba(99,102,241,0.03);
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .status-dot.done { background: var(--green); }
+        .status-dot.partial { background: var(--yellow); }
+        .status-dot.missing { background: var(--red); }
+        .status-dot.later { background: var(--text3); }
+
+        /* Alert boxes */
+        .alert {
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .alert .alert-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+        .alert-danger {
+            background: rgba(239,68,68,0.08);
+            border: 1px solid rgba(239,68,68,0.2);
+        }
+
+        .alert-warning {
+            background: rgba(245,158,11,0.08);
+            border: 1px solid rgba(245,158,11,0.2);
+        }
+
+        .alert-info {
+            background: rgba(99,102,241,0.08);
+            border: 1px solid rgba(99,102,241,0.2);
+        }
+
+        .alert-success {
+            background: rgba(16,185,129,0.08);
+            border: 1px solid rgba(16,185,129,0.2);
+        }
+
+        .alert strong { font-weight: 700; }
+
+        /* Verdict */
+        .verdict-card {
+            background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.06));
+            border: 1px solid rgba(99,102,241,0.2);
+            border-radius: 20px;
+            padding: 32px;
+            text-align: center;
+            margin: 32px 0;
+        }
+
+        .verdict-card .score {
+            font-size: 64px;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1;
+        }
+
+        .verdict-card .score-label {
+            font-size: 14px;
+            color: var(--text2);
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        .verdict-card .verdict-text {
+            margin-top: 16px;
+            color: var(--text);
+            font-size: 15px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Roadmap */
+        .roadmap {
+            position: relative;
+            padding-left: 32px;
+        }
+
+        .roadmap::before {
+            content: '';
+            position: absolute;
+            left: 11px;
+            top: 8px;
+            bottom: 8px;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--accent), var(--accent2), var(--green), var(--cyan));
+            border-radius: 2px;
+        }
+
+        .roadmap-item {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .roadmap-item::before {
+            content: '';
+            position: absolute;
+            left: -25px;
+            top: 6px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid var(--accent);
+            background: var(--bg);
+        }
+
+        .roadmap-item.phase2::before { border-color: var(--accent2); }
+        .roadmap-item.phase3::before { border-color: var(--green); }
+        .roadmap-item.phase4::before { border-color: var(--cyan); }
+
+        .roadmap-phase {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .roadmap-item.phase2 .roadmap-phase { color: var(--accent2); }
+        .roadmap-item.phase3 .roadmap-phase { color: var(--green); }
+        .roadmap-item.phase4 .roadmap-phase { color: var(--cyan); }
+
+        .roadmap-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .roadmap-desc {
+            font-size: 12px;
+            color: var(--text2);
+            margin-bottom: 8px;
+        }
+
+        .roadmap-tasks {
+            list-style: none;
+            font-size: 12px;
+            color: var(--text2);
+        }
+
+        .roadmap-tasks li {
+            padding: 3px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .roadmap-tasks li::before {
+            content: '○';
+            color: var(--text3);
+            font-size: 10px;
+        }
+
+        /* Risk meter */
+        .risk-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .risk-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .risk-item .risk-level {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .risk-item .risk-level.high { color: var(--red); }
+        .risk-item .risk-level.medium { color: var(--yellow); }
+        .risk-item .risk-level.low { color: var(--green); }
+
+        .risk-item .risk-name {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .risk-item .risk-desc {
+            font-size: 11px;
+            color: var(--text3);
+            line-height: 1.5;
+        }
+
+        /* Current vs Spec comparison */
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .compare-card {
+            border-radius: 14px;
+            padding: 20px;
+        }
+
+        .compare-card.current {
+            background: rgba(245,158,11,0.06);
+            border: 1px solid rgba(245,158,11,0.15);
+        }
+
+        .compare-card.target {
+            background: rgba(16,185,129,0.06);
+            border: 1px solid rgba(16,185,129,0.15);
+        }
+
+        .compare-card h4 {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .compare-card.current h4 { color: var(--yellow); }
+        .compare-card.target h4 { color: var(--green); }
+
+        .compare-card ul {
+            list-style: none;
+            font-size: 12px;
+            color: var(--text2);
+        }
+
+        .compare-card ul li {
+            padding: 4px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+        }
+
+        .compare-card ul li span.icon { flex-shrink: 0; }
+
+        /* Footer */
+        .report-footer {
+            text-align: center;
+            padding: 32px;
+            border-top: 1px solid var(--border);
+            color: var(--text3);
+            font-size: 11px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .big-numbers { grid-template-columns: repeat(2, 1fr); }
+            .compare-grid, .risk-grid { grid-template-columns: 1fr; }
+            .report-header h1 { font-size: 24px; }
+        }
+
+        /* Animations */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 0.6s ease forwards;
+        }
+
+        @keyframes fadeUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-up:nth-child(2) { animation-delay: 0.1s; }
+        .fade-up:nth-child(3) { animation-delay: 0.15s; }
+        .fade-up:nth-child(4) { animation-delay: 0.2s; }
+        .fade-up:nth-child(5) { animation-delay: 0.25s; }
+    </style>
+</head>
+<body>
+
+<!-- Toolbar -->
+<div class="toolbar no-print">
+    <button onclick="window.print()">📄 Xuất PDF</button>
+    <button onclick="document.body.classList.toggle('light-mode')">🌗 Sáng / Tối</button>
+</div>
+
+<!-- Header -->
+<header class="report-header">
+    <div class="badge">Báo cáo nội bộ</div>
+    <h1>Near Me — Đánh giá Khả thi & Tiến độ</h1>
+    <p class="subtitle">Behavior Decision System · Phân tích toàn diện dự án</p>
+    <p class="date">📅 Ngày đánh giá: 31/03/2026 · Dựa trên 4 file spec (doc_new/) + source code hiện tại</p>
+</header>
+
+<div class="container">
+
+    <!-- Big Numbers -->
+    <div class="big-numbers fade-up">
+        <div class="big-num-card">
+            <div class="num accent">~15%</div>
+            <div class="label">Tiến độ tổng</div>
+        </div>
+        <div class="big-num-card">
+            <div class="num green">7/10</div>
+            <div class="label">Khả thi kỹ thuật</div>
+        </div>
+        <div class="big-num-card">
+            <div class="num yellow">12-16</div>
+            <div class="label">Tuần cho MVP</div>
+        </div>
+        <div class="big-num-card">
+            <div class="num cyan">0/8</div>
+            <div class="label">API Endpoints</div>
+        </div>
+    </div>
+
+    <!-- SECTION: Hiện tại vs Mục tiêu -->
+    <div class="section fade-up">
+        <h2 class="section-title"><span class="icon">🔄</span> Hiện tại vs. Mục tiêu Spec</h2>
+
+        <div class="compare-grid">
+            <div class="compare-card current">
+                <h4>⚠️ Hiện tại đang có</h4>
+                <ul>
+                    <li><span class="icon">📦</span> SPA frontend (Vite + React)</li>
+                    <li><span class="icon">🔀</span> Cổng chuyển hướng sang nền tảng khác (Google, TikTok, Shopee...)</li>
+                    <li><span class="icon">📍</span> GPS + chọn khu vực thủ công</li>
+                    <li><span class="icon">🌐</span> Đa ngôn ngữ (vi/en)</li>
+                    <li><span class="icon">🔐</span> Firebase Auth (Google login)</li>
+                    <li><span class="icon">🐳</span> Docker + Nginx + VPS deploy</li>
+                    <li><span class="icon">❌</span> Không có backend server</li>
+                    <li><span class="icon">❌</span> Không có database</li>
+                    <li><span class="icon">❌</span> Không có AI / Chatbot</li>
+                </ul>
+            </div>
+            <div class="compare-card target">
+                <h4>✅ Spec yêu cầu (doc_new)</h4>
+                <ul>
+                    <li><span class="icon">🧠</span> Behavior Decision System</li>
+                    <li><span class="icon">🤖</span> AI Chatbot chọn Top 3 trong &lt;25 giây</li>
+                    <li><span class="icon">⚙️</span> Backend: Decision Engine (stateless)</li>
+                    <li><span class="icon">🗄️</span> PostgreSQL: 8 bảng + Redis sessions</li>
+                    <li><span class="icon">📊</span> 7 KPIs tracking hằng ngày</li>
+                    <li><span class="icon">🔁</span> Learning Loop tự học từ hành vi</li>
+                    <li><span class="icon">🗺️</span> Zone Strategy (bắt đầu Q1)</li>
+                    <li><span class="icon">🔌</span> 8 API endpoints versioned</li>
+                    <li><span class="icon">📱</span> Channels: Messenger + Zalo</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION: Progress per module -->
+    <div class="section fade-up">
+        <h2 class="section-title"><span class="icon">📊</span> Tiến độ theo Module</h2>
+
+        <div class="card">
+            <div class="progress-container">
+                <div class="progress-label"><span class="name">🔍 Discovery Layer (SEO + GPS)</span><span class="pct">25%</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:25%;background:linear-gradient(90deg,#0ea5e9,#06b6d4)"></div></div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-label"><span class="name">🖥️ Frontend (tái sử dụng được)</span><span class="pct">45%</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:45%;background:linear-gradient(90deg,#ec4899,#f472b6)"></div></div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-label"><span class="name">🚀 Deployment & Infra</span><span class="pct">40%</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:40%;background:linear-gradient(90deg,#14b8a6,#2dd4bf)"></div></div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-label"><span class="name">🗄️ Data Model</span><span class="pct">5%</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:5%;background:linear-gradient(90deg,#10b981,#34d399)"></div></div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-label"><span class="name">🤖 Decision Layer (AI/Chatbot)</span><span class="pct">0%</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:0%;background:linear-gradient(90deg,#8b5cf6,#a78bfa)"></div></div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-label"><span class="name">⚙️ Backend Services</span><span class="pct">0%</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:0%;background:linear-gradient(90deg,#f59e0b,#fbbf24)"></div></div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-label"><span class="name">📊 Metrics & Learning Loop</span><span class="pct">0%</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:0%;background:linear-gradient(90deg,#ef4444,#f87171)"></div></div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-label"><span class="name">🗺️ Zone Strategy</span><span class="pct">0%</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:0%;background:linear-gradient(90deg,#6366f1,#818cf8)"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert: Biggest gap -->
+    <div class="alert alert-danger fade-up">
+        <span class="alert-icon">🚨</span>
+        <div>
+            <strong>Gap lớn nhất: Decision Layer = 0%</strong><br>
+            Theo spec, Chatbot/AI là <strong>sản phẩm chính</strong> (website chỉ là cổng vào). Hiện tại chưa có bất kỳ component nào cho Decision Engine, Chatbot UI, hay AI Flow.
+        </div>
+    </div>
+
+    <!-- SECTION: Chi tiết từng module -->
+    <div class="section fade-up">
+        <h2 class="section-title"><span class="icon">🔍</span> Chi tiết Gap Analysis</h2>
+
+        <!-- Discovery -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">🔍 Discovery Layer</span>
+                <span class="card-badge yellow">25%</span>
+            </div>
+            <table class="data-table">
+                <thead><tr><th>Hạng mục</th><th>Trạng thái</th><th>Chi tiết</th></tr></thead>
+                <tbody>
+                    <tr><td>GPS / Vị trí</td><td><span class="status-dot done"></span>Có</td><td>LocationContext, reverse geocode, radius selector — khá tốt</td></tr>
+                    <tr><td>Chọn khu vực thủ công</td><td><span class="status-dot done"></span>Có</td><td>LocationModal với provinces/districts</td></tr>
+                    <tr><td>Homepage Hero</td><td><span class="status-dot partial"></span>Một phần</td><td>Có hero nhưng nội dung chưa đúng spec ("Không biết đi đâu?")</td></tr>
+                    <tr><td>SEO trang ngành</td><td><span class="status-dot missing"></span>Thiếu</td><td>Có CategoryPage nhưng thiếu nội dung SEO 300-500 chữ</td></tr>
+                    <tr><td>SEO trang khu vực</td><td><span class="status-dot missing"></span>Thiếu</td><td>Chưa có trang /quan-1, /phu-nhuan...</td></tr>
+                    <tr><td>Entity pages</td><td><span class="status-dot missing"></span>Thiếu</td><td>Chưa có trang riêng cho mỗi địa điểm</td></tr>
+                    <tr><td>Intent Buttons</td><td><span class="status-dot missing"></span>Thiếu</td><td>"Ăn nhanh", "Cafe ngồi lâu" → mở chatbot</td></tr>
+                    <tr><td>Floating "Hỏi Near Me"</td><td><span class="status-dot missing"></span>Thiếu</td><td>Button CTA nổi luôn hiển thị</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Decision -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">🤖 Decision Layer (SẢN PHẨM CHÍNH)</span>
+                <span class="card-badge red">0%</span>
+            </div>
+            <table class="data-table">
+                <thead><tr><th>Hạng mục</th><th>Trạng thái</th><th>Chi tiết</th></tr></thead>
+                <tbody>
+                    <tr><td>Chatbot UI (webchat)</td><td><span class="status-dot missing"></span>Chưa có</td><td>Cần xây hộp chat widget trên web</td></tr>
+                    <tr><td>AI Flow 6 bước</td><td><span class="status-dot missing"></span>Chưa có</td><td>Context → Classify → Engine → Output → Action → Feedback</td></tr>
+                    <tr><td>Thuật toán Top 3</td><td><span class="status-dot missing"></span>Chưa có</td><td>Score = distance + open_now + context + speed + reliability</td></tr>
+                    <tr><td>Decision Overlay</td><td><span class="status-dot missing"></span>Chưa có</td><td>CTA "Hỏi Near Me" trên mọi trang</td></tr>
+                    <tr><td>Feedback 45-60 phút</td><td><span class="status-dot missing"></span>Chưa có</td><td>Cần async worker trên backend</td></tr>
+                    <tr><td>Messenger / Zalo</td><td><span class="status-dot later"></span>Phase sau</td><td>Webhook inbound/outbound</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Backend -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">⚙️ Backend Services</span>
+                <span class="card-badge red">0%</span>
+            </div>
+            <table class="data-table">
+                <thead><tr><th>Hạng mục</th><th>Trạng thái</th><th>Chi tiết</th></tr></thead>
+                <tbody>
+                    <tr><td>API Gateway</td><td><span class="status-dot missing"></span>Chưa có</td><td>Rate limit, versioning, auth</td></tr>
+                    <tr><td>Decision Engine</td><td><span class="status-dot missing"></span>Chưa có</td><td>Stateless service, endpoint /recommend</td></tr>
+                    <tr><td>Location Service</td><td><span class="status-dot partial"></span>Client-side</td><td>Đang dùng Nominatim — cần server-side</td></tr>
+                    <tr><td>Places Service</td><td><span class="status-dot missing"></span>Chưa có</td><td>Cache 30s, query candidates</td></tr>
+                    <tr><td>8 API Endpoints</td><td><span class="status-dot missing"></span>0/8</td><td>/session/start, /recommend, /accept...</td></tr>
+                    <tr><td>Redis</td><td><span class="status-dot missing"></span>Chưa có</td><td>Session store TTL 24h</td></tr>
+                    <tr><td>PostgreSQL</td><td><span class="status-dot missing"></span>Chưa có</td><td>Primary database — 8 bảng</td></tr>
+                    <tr><td>Fallback system</td><td><span class="status-dot later"></span>Phase sau</td><td>Circuit breaker, Quick Finder</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Data Model -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">🗄️ Data Model</span>
+                <span class="card-badge red">5%</span>
+            </div>
+            <table class="data-table">
+                <thead><tr><th>Bảng</th><th>Trạng thái</th><th>Mục đích</th></tr></thead>
+                <tbody>
+                    <tr><td><code>places</code></td><td><span class="status-dot partial"></span>Static data</td><td>Có file JS nhưng sai format, thiếu scores</td></tr>
+                    <tr><td><code>place_tags</code></td><td><span class="status-dot missing"></span>Chưa có</td><td>quick / chill / group / late / emergency</td></tr>
+                    <tr><td><code>sessions</code></td><td><span class="status-dot missing"></span>Chưa có</td><td>Ẩn danh, GPS per session</td></tr>
+                    <tr><td><code>decisions</code></td><td><span class="status-dot missing"></span>Chưa có</td><td>Mỗi lần gợi ý Top 3</td></tr>
+                    <tr><td><code>decision_candidates</code></td><td><span class="status-dot missing"></span>Chưa có</td><td>⭐ Training data cho AI — quan trọng nhất</td></tr>
+                    <tr><td><code>accepts</code></td><td><span class="status-dot missing"></span>Chưa có</td><td>Lựa chọn thực tế của user</td></tr>
+                    <tr><td><code>feedback</code></td><td><span class="status-dot missing"></span>Chưa có</td><td>good / neutral / bad</td></tr>
+                    <tr><td><code>zones</code></td><td><span class="status-dot missing"></span>Chưa có</td><td>Khu vực triển khai</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Verdict -->
+    <div class="verdict-card fade-up">
+        <div class="score">7/10</div>
+        <div class="score-label">Điểm Khả thi Kỹ thuật</div>
+        <p class="verdict-text">
+            Dự án <strong>hoàn toàn khả thi</strong> về mặt kỹ thuật. Thuật toán Top 3 đơn giản (weighted scoring), stack tiêu chuẩn (Node + PostgreSQL + Redis). GPS foundation đã tốt. Tuy nhiên cần <strong>12-16 tuần</strong> cho MVP và nên có thêm <strong>1 người hỗ trợ</strong> backend/data.
+        </p>
+    </div>
+
+    <!-- SECTION: Risks -->
+    <div class="section fade-up">
+        <h2 class="section-title"><span class="icon">⚠️</span> Rủi ro chính</h2>
+
+        <div class="risk-grid">
+            <div class="risk-item">
+                <div class="risk-level high">🔴 Rủi ro cao</div>
+                <div class="risk-name">Seed data chất lượng</div>
+                <div class="risk-desc">Cần khảo sát thực tế 30-80 địa điểm, gán tag, verify giờ mở cửa. Không tự động được.</div>
+            </div>
+            <div class="risk-item">
+                <div class="risk-level high">🔴 Rủi ro cao</div>
+                <div class="risk-name">Cold Start Problem</div>
+                <div class="risk-desc">Decision Engine cần data hành vi để thông minh, nhưng ban đầu chưa có data nào.</div>
+            </div>
+            <div class="risk-item">
+                <div class="risk-level high">🔴 Rủi ro cao</div>
+                <div class="risk-name">Đội ngũ 1 người</div>
+                <div class="risk-desc">Full-stack + AI + data collection + SEO content = quá nhiều cho 1 người trong 12-16 tuần.</div>
+            </div>
+            <div class="risk-item">
+                <div class="risk-level medium">🟡 Trung bình</div>
+                <div class="risk-name">KPI tham vọng</div>
+                <div class="risk-desc">Same-day return ≥ 20% là rất cao cho sản phẩm mới. Cần thời gian xây dựng thói quen.</div>
+            </div>
+            <div class="risk-item">
+                <div class="risk-level low">🟢 Thấp</div>
+                <div class="risk-name">Chi phí Cloud</div>
+                <div class="risk-desc">PostgreSQL + Redis + VPS ước tính ~$20-50/tháng cho MVP. Rất hợp lý.</div>
+            </div>
+            <div class="risk-item">
+                <div class="risk-level low">🟢 Thấp</div>
+                <div class="risk-name">Complexity kỹ thuật</div>
+                <div class="risk-desc">Thuật toán scoring đơn giản, rule-based chatbot đủ cho MVP. Không cần ML/AI phức tạp.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION: Roadmap -->
+    <div class="section fade-up">
+        <h2 class="section-title"><span class="icon">🗓️</span> Lộ trình đề xuất</h2>
+
+        <div class="card">
+            <div class="roadmap">
+                <div class="roadmap-item phase1">
+                    <div class="roadmap-phase">Phase 1 · Tuần 1-3</div>
+                    <div class="roadmap-title">Backend Foundation</div>
+                    <div class="roadmap-desc">API hoạt động + Database có seed data</div>
+                    <ul class="roadmap-tasks">
+                        <li>Chọn backend stack (Node.js/Express hoặc Python/FastAPI)</li>
+                        <li>Setup PostgreSQL + tạo 8 bảng theo schema</li>
+                        <li>Setup Redis cho sessions</li>
+                        <li>Implement 4 API endpoints cốt lõi</li>
+                        <li>Khảo sát thực tế + seed 30-50 địa điểm Core Zone</li>
+                        <li>Implement Decision Engine v1 (weighted scoring)</li>
+                    </ul>
+                </div>
+
+                <div class="roadmap-item phase2">
+                    <div class="roadmap-phase">Phase 2 · Tuần 4-6</div>
+                    <div class="roadmap-title">Chatbot + Frontend Pivot</div>
+                    <div class="roadmap-desc">Chatbot hoạt động trên web</div>
+                    <ul class="roadmap-tasks">
+                        <li>Xây Chatbot UI component (floating widget)</li>
+                        <li>Implement AI Flow 6 bước (rule-based)</li>
+                        <li>Sửa Homepage (Intent Buttons, Decision Overlay)</li>
+                        <li>Floating "Hỏi Near Me" button</li>
+                        <li>Connect frontend → backend API</li>
+                    </ul>
+                </div>
+
+                <div class="roadmap-item phase3">
+                    <div class="roadmap-phase">Phase 3 · Tuần 7-9</div>
+                    <div class="roadmap-title">Metrics + Feedback</div>
+                    <div class="roadmap-desc">Hệ thống tự học</div>
+                    <ul class="roadmap-tasks">
+                        <li>Event Tracking (structured JSON logs)</li>
+                        <li>Feedback Service (async, delay 45-60 phút)</li>
+                        <li>Learning Loop (accept/reject → update reliability)</li>
+                        <li>Dashboard metrics cơ bản</li>
+                        <li>Data Hygiene rules</li>
+                    </ul>
+                </div>
+
+                <div class="roadmap-item phase4">
+                    <div class="roadmap-phase">Phase 4 · Tuần 10-12</div>
+                    <div class="roadmap-title">SEO + Zone Expansion</div>
+                    <div class="roadmap-desc">Mở rộng nếu KPI đạt</div>
+                    <ul class="roadmap-tasks">
+                        <li>SEO pages (trang ngành, trang khu vực)</li>
+                        <li>Content 300-500 chữ/trang</li>
+                        <li>Zone logic (trong/ngoài Core)</li>
+                        <li>Staging environment</li>
+                        <li>Monitor KPIs → seed zone tiếp theo</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION: Hành động ngay -->
+    <div class="section fade-up">
+        <h2 class="section-title"><span class="icon">⚡</span> Hành động ngay (tuần này)</h2>
+
+        <div class="alert alert-info">
+            <span class="alert-icon">1️⃣</span>
+            <div><strong>Chọn backend stack:</strong> Node.js/Express (quen JS) hay Python/FastAPI (tốt hơn cho AI sau này)?</div>
+        </div>
+        <div class="alert alert-info">
+            <span class="alert-icon">2️⃣</span>
+            <div><strong>Setup PostgreSQL locally</strong> + tạo schema 8 bảng theo doc_new File #3</div>
+        </div>
+        <div class="alert alert-warning">
+            <span class="alert-icon">3️⃣</span>
+            <div><strong>Khảo sát thực tế Hồ Con Rùa:</strong> đi thực địa, ghi chép 30-50 địa điểm, gán tag hành vi (quick/chill/group/late/emergency)</div>
+        </div>
+        <div class="alert alert-info">
+            <span class="alert-icon">4️⃣</span>
+            <div><strong>Quyết định chatbot approach:</strong> Rule-based (nhanh, đủ MVP) hay LLM API (mạnh hơn, tốn tiền)?</div>
+        </div>
+
+        <div class="alert alert-success" style="margin-top:24px">
+            <span class="alert-icon">💡</span>
+            <div>
+                <strong>Khuyến nghị:</strong> Giữ lại platform redirect logic hiện tại như <strong>Quick Finder fallback</strong> cho vùng ngoài Core Zone. Không xóa — chuyển đổi dần.
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<footer class="report-footer">
+    Near Me — Feasibility & Progress Report · Confidential · 31/03/2026<br>
+    Tự động tạo bởi AI Analysis Engine
+</footer>
+
+</body>
+</html>
