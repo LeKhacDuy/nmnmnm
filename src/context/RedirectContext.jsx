@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import { useLanguage } from './LanguageContext';
+import { useTracking } from './TrackingContext';
 
 const RedirectContext = createContext(null);
 
@@ -17,6 +18,7 @@ export function RedirectProvider({ children }) {
     const [platform, setPlatform] = useState({ name: '', icon: '', url: '' });
     const [countdown, setCountdown] = useState(3);
     const [intervalId, setIntervalId] = useState(null);
+    const { trackEvent } = useTracking();
 
     const text = language === 'en' ? {
         thankyou: 'Thank you for using NearMe!',
@@ -53,6 +55,11 @@ export function RedirectProvider({ children }) {
                     clearInterval(id);
                     // Auto-redirect after countdown
                     setTimeout(() => {
+                        trackEvent('redirect_confirm', {
+                            platform_name: name,
+                            url,
+                            method: 'auto',
+                        });
                         window.open(url, '_blank');
                         setIsOpen(false);
                     }, 500);
@@ -68,16 +75,24 @@ export function RedirectProvider({ children }) {
         if (intervalId) {
             clearInterval(intervalId);
         }
+        trackEvent('redirect_confirm', {
+            platform_name: platform.name,
+            url: platform.url,
+            method: 'manual',
+        });
         window.open(platform.url, '_blank');
         setIsOpen(false);
-    }, [platform.url, intervalId]);
+    }, [platform.url, platform.name, intervalId, trackEvent]);
 
     const handleCancel = useCallback(() => {
         if (intervalId) {
             clearInterval(intervalId);
         }
+        trackEvent('redirect_cancel', {
+            platform_name: platform.name,
+        });
         setIsOpen(false);
-    }, [intervalId]);
+    }, [intervalId, platform.name, trackEvent]);
 
     const value = {
         showRedirectPopup

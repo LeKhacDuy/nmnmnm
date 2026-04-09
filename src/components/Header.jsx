@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useLocationContext, SEARCH_MODES } from '../context/LocationContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { useTracking } from '../context/TrackingContext';
 
 function Header() {
     const navigate = useNavigate();
@@ -27,6 +28,7 @@ function Header() {
 
     const { language, toggleLanguage, t } = useLanguage();
     const { currentUser, userProfile } = useAuth();
+    const { trackEvent } = useTracking();
 
     const [isScrolled, setIsScrolled] = useState(false);
     const [searchKeyword, setSearchKeyword] = useState('');
@@ -74,6 +76,7 @@ function Header() {
     // Handle "Gần Tôi" click - GPS + 3km default
     const handleNearMeClick = async (e) => {
         e.preventDefault();
+        trackEvent('nav_mode_click', { mode: 'near_me' });
         const success = await activateNearMeMode();
         if (success) {
             navigate('/gan-toi');
@@ -83,6 +86,7 @@ function Header() {
     // Handle "Gần Đây" click - Manual region selection
     const handleNearbyClick = (e) => {
         e.preventDefault();
+        trackEvent('nav_mode_click', { mode: 'nearby' });
         activateNearbyMode();
         // Will navigate after location is selected in modal
     };
@@ -90,6 +94,7 @@ function Header() {
     // Handle "Gần Nhất" click - Radius selection
     const handleClosestClick = (e) => {
         e.preventDefault();
+        trackEvent('nav_mode_click', { mode: 'closest' });
         activateClosestMode();
         navigate('/gan-nhat');
     };
@@ -97,6 +102,7 @@ function Header() {
     // Handle "Đang Mở" click - Open now filter
     const handleOpenNowClick = (e) => {
         e.preventDefault();
+        trackEvent('nav_mode_click', { mode: 'open_now' });
         activateOpenNowMode();
         navigate('/dang-mo');
     };
@@ -104,6 +110,7 @@ function Header() {
     // Handle "Khẩn Cấp" click - Emergency services
     const handleEmergencyClick = (e) => {
         e.preventDefault();
+        trackEvent('nav_mode_click', { mode: 'emergency' });
         activateEmergencyMode();
         navigate('/khan-cap');
     };
@@ -112,6 +119,10 @@ function Header() {
     const handleSearch = (e) => {
         e.preventDefault();
         if (searchKeyword.trim()) {
+            trackEvent('search', {
+                keyword: searchKeyword.trim(),
+                source: 'header',
+            });
             navigate(`/search?q=${encodeURIComponent(searchKeyword.trim())}`);
         }
     };

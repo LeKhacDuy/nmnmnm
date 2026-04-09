@@ -3,6 +3,7 @@ import { LocationProvider } from './context/LocationContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider } from './context/AuthContext';
 import { RedirectProvider } from './context/RedirectContext';
+import { TrackingProvider } from './context/TrackingContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -72,15 +73,17 @@ function AppContent() {
 function App() {
     return (
         <Router>
-            <LanguageProvider>
-                <AuthProvider>
-                    <LocationProvider>
-                        <RedirectProvider>
-                            <AppContent />
-                        </RedirectProvider>
-                    </LocationProvider>
-                </AuthProvider>
-            </LanguageProvider>
+            <TrackingProvider>
+                <LanguageProvider>
+                    <AuthProvider>
+                        <LocationProvider>
+                            <RedirectProvider>
+                                <AppContent />
+                            </RedirectProvider>
+                        </LocationProvider>
+                    </AuthProvider>
+                </LanguageProvider>
+            </TrackingProvider>
         </Router>
     );
 }

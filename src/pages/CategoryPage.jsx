@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
+import { useTracking } from '../context/TrackingContext';
 
 // Category data with images and translations
 const categoriesData = [
@@ -118,6 +119,7 @@ function CategoryPage() {
     const { categoryId } = useParams();
     const { language } = useLanguage();
     const navigate = useNavigate();
+    const { trackEvent } = useTracking();
     const [searchQuery, setSearchQuery] = useState('');
 
     // Find the category
@@ -148,11 +150,20 @@ function CategoryPage() {
 
     // Handle subcategory click - navigate to search
     const handleSubcategoryClick = (subcategory) => {
+        trackEvent('subcategory_click', {
+            subcategory_name: subcategory,
+            parent_category: category.id,
+        });
         navigate(`/search?q=${encodeURIComponent(subcategory)}`);
     };
 
     // Handle group click
     const handleGroupClick = (group) => {
+        trackEvent('category_click', {
+            category_id: category.id,
+            group_name: group,
+            source: 'category_page',
+        });
         navigate(`/search?q=${encodeURIComponent(group)}`);
     };
 

@@ -3,6 +3,7 @@ import { useSearchParams, useParams, useNavigate, useLocation } from 'react-rout
 import { useLocationContext } from '../context/LocationContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useRedirect } from '../context/RedirectContext';
+import { useTracking } from '../context/TrackingContext';
 import { getPlatformUrl, PLATFORM_GROUPS } from '../utils/platformHelper';
 
 function Search({ searchMode: propSearchMode }) {
@@ -12,6 +13,7 @@ function Search({ searchMode: propSearchMode }) {
     const { categoryId } = useParams();
     const { t, language } = useLanguage();
     const { showRedirectPopup } = useRedirect();
+    const { trackEvent } = useTracking();
 
     const {
         hasLocation,
@@ -114,6 +116,13 @@ function Search({ searchMode: propSearchMode }) {
 
         const url = getPlatformUrl(platformId, keyword, queryObj);
         if (url) {
+            // Track platform click
+            trackEvent('platform_click', {
+                platform_id: platformId,
+                platform_name: platformName,
+                keyword,
+                url,
+            });
             // Show confirmation popup before redirecting
             showRedirectPopup(platformName, platformIcon, url);
         }
@@ -130,6 +139,12 @@ function Search({ searchMode: propSearchMode }) {
         }
         const queries = buildQueries(keyword);
         setQueryObj(queries);
+
+        // Track search
+        trackEvent('search', {
+            keyword: keyword.trim(),
+            source: 'search_page',
+        });
     };
 
     // Get translated group name

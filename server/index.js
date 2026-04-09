@@ -8,6 +8,7 @@ import { testConnection } from './config/database.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.js';
 import healthRoutes from './routes/health.js';
+import trackingRoutes from './routes/tracking.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -62,6 +63,7 @@ app.use('/v1/auth/register', authLimiter);
 // =============================================
 app.use('/v1/auth', authRoutes);
 app.use('/v1/health', healthRoutes);
+app.use('/v1/tracking', trackingRoutes);
 
 // Root
 app.get('/', (_req, res) => {
@@ -94,8 +96,9 @@ async function start() {
 
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`✅ Server running on http://localhost:${PORT}`);
-        console.log(`   Auth:   POST /v1/auth/register, /v1/auth/login, /v1/auth/google`);
-        console.log(`   Health: GET  /v1/health`);
+        console.log(`   Auth:     POST /v1/auth/register, /v1/auth/login, /v1/auth/google`);
+        console.log(`   Health:   GET  /v1/health`);
+        console.log(`   Tracking: POST /v1/tracking/events, GET /v1/tracking/analytics`);
     });
 }
 

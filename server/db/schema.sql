@@ -176,3 +176,24 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 );
 
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
+
+-- =============================================
+-- 10. TRACKING EVENTS (Hành vi người dùng)
+-- =============================================
+CREATE TABLE IF NOT EXISTS tracking_events (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    session_id      VARCHAR(64) NOT NULL,
+    user_id         UUID REFERENCES users(id),
+    event_type      VARCHAR(30) NOT NULL,
+    event_data      JSONB NOT NULL DEFAULT '{}',
+    page_path       VARCHAR(255),
+    device_type     VARCHAR(20),
+    user_agent      TEXT,
+    ip_address      VARCHAR(45),
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_tracking_session ON tracking_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_tracking_user ON tracking_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_tracking_type ON tracking_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_tracking_created ON tracking_events(created_at);

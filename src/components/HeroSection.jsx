@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocationContext } from '../context/LocationContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTracking } from '../context/TrackingContext';
 
 function HeroSection() {
     const navigate = useNavigate();
     const { hasLocation, setIsLocationModalOpen, setPendingSearch } = useLocationContext();
     const { t } = useLanguage();
+    const { trackEvent } = useTracking();
 
     const [activeCategory, setActiveCategory] = useState('all');
     const [searchKeyword, setSearchKeyword] = useState('');
@@ -34,6 +36,10 @@ function HeroSection() {
         }
 
         // Navigate to search page with keyword
+        trackEvent('search', {
+            keyword,
+            source: 'hero',
+        });
         navigate(`/search?q=${encodeURIComponent(keyword)}`);
     };
 
@@ -49,6 +55,11 @@ function HeroSection() {
                     setPendingSearch(label);
                     setIsLocationModalOpen(true);
                 } else {
+                    trackEvent('category_click', {
+                        category_id: categoryId,
+                        category_label: label,
+                        source: 'hero',
+                    });
                     navigate(`/search?q=${encodeURIComponent(label)}`);
                 }
             }
